@@ -2,7 +2,7 @@
 
 # Define the URL and output file
 url="https://www.faa.gov/airports/resources/acronyms"
-outputFile="config/faa_acronyms.csv"
+outputFile="config/faa_airport_acronyms_and_abbreviations.csv"
 
 # Use wget to fetch the webpage content
 content=$(wget --header="Accept-Encoding: gzip, deflate, br" \

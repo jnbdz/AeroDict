@@ -2,7 +2,7 @@
 
 # Define URL and output file
 url="https://www.faa.gov/jobs/abbreviations"
-outputFile="config/faa_abbreviations.csv"
+outputFile="config/faa_acronyms_and_abbreviations.csv"
 
 # Fetch the webpage content
 content=$(wget --header="Accept-Encoding: gzip, deflate, br" \

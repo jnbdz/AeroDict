@@ -1,4 +1,4 @@
-home = $(HOME)
-app_path = $(home)/.local/bin
-app_desktop_path = $(home)/.local/share/applications
-config_path = $(home)/.config/AeroDict
+PREFIX = /usr/local
+BINDIR = $(PREFIX)/bin
+MANDIR = $(PREFIX)/share/man/man1
+DATADIR = $(PREFIX)/share/aerodict
