@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+# Define the URL and output file
+url="https://www.faa.gov/airports/resources/acronyms"
+outputFile="config/faa_acronyms.csv"
+
+# Use wget to fetch the webpage content
+content=$(wget --header="Accept-Encoding: gzip, deflate, br" \
+     --header="Accept-Language: en-US,en;q=0.5" \
+     --header="DNT: 1" \
+     --header="Connection: keep-alive" \
+     --header="Upgrade-Insecure-Requests: 1" \
+     --header="Sec-Fetch-Dest: document" \
+     --header="Sec-Fetch-Mode: navigate" \
+     --header="Sec-Fetch-Site: none" \
+     --header="Sec-Fetch-User: ?1" \
+     --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
+     --header="User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0" \
+     -O - "$url" | gunzip -c)
+
+# Parse the HTML content
+echo "$content" | pup 'main#main p json{}' | \
+jq -r '.[] | select(.children | length > 0) | select(.children[0].tag == "abbr") | [.children[0].text, (.text | gsub("\\s+"; " ") | gsub(" — "; ", ") | gsub("^\\s*—\\s*"; ""))] | @csv' > "$outputFile"
+#jq -r '.[] | select(.children | length > 0) | select(.children[0].tag == "abbr") | [.children[0].text, (.text | gsub("\\s+"; " ") | gsub(" — "; ", "))] | @csv' > "$outputFile"
+
+echo "Data extracted to $outputFile"

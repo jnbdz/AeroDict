@@ -1,0 +1,6 @@
+#!/bin/bash
+
+outputFile="config/manab_en.csv"
+
+# Convert CSV to a simpler format and use fzf for searching
+awk -F',' '{gsub(/"/, "", $1); gsub(/"/, "", $2); printf "%-15s %s\n", $1, $2}' "$outputFile" | fzf --ansi --preview-window=hidden:wrap
