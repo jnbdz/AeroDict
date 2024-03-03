@@ -1,6 +1,91 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+#/ AeroDict - Aviation abbreviations and acronyms dictionary.
+#/
+#/ Usage: aerodict [OPTIONS]
+#/
+#/ OPTIONS:
+#/
+#/   General options:
+#/
+#/       -h, -?, --help                   - Print this help text and exit
+#/       -v, --version                    - Print program version and exit
+#/
+# commander is under a MIT style licence.
+# See LICENSE.md for the full text.
+#
+# This is open source! Please feel free to contribute.
+# https://github.com/SiteNetAviation/AeroDict/
 
-outputFile="config/manab_en.csv"
+# Initial setup
+VERSION="1.0.0"
+CONFIG_FILE="config/config.csv"
 
-# Convert CSV to a simpler format and use fzf for searching
-awk -F',' '{gsub(/"/, "", $1); gsub(/"/, "", $2); printf "%-15s %s\n", $1, $2}' "$outputFile" | fzf --ansi --preview-window=hidden:wrap
+# Print help text extracted from comments
+print_help() {
+    grep '^#/' "$0" | cut -c 4-
+}
+
+# Print version information
+print_version() {
+    echo "AeroDict version $VERSION"
+}
+
+# Parse command-line options
+while (( "$#" )); do
+    case "$1" in
+        -v|--version)
+            print_version
+            exit 0
+            ;;
+        --) # End of all options
+            shift
+            break
+            ;;
+        -h|--help|-?|--\?)
+            print_help
+            exit 0
+            ;;
+        -*|--*=) # Unsupported flags
+            echo "Error: Unsupported flag $1" >&2
+            exit 1
+            ;;
+        *) # Unrecognized arguments
+            echo "Error: Unrecognized argument $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Function to display sources for selection
+display_sources_for_selection() {
+    local content=$(cat "$CONFIG_FILE" | sed 's/"//g') # Remove quotes
+    echo "$content" | awk -F',' '{print $1 ", " $3 ", " $2}' | column -t -s ','
+}
+
+# Function to load and present data from selected CSV
+load_and_present_data() {
+    local selected_source_file="config/$1.csv"
+    
+    if [[ ! -f "$selected_source_file" ]]; then
+        echo "Error: Data file $selected_source_file not found" >&2
+        exit 1
+    fi
+
+    cat "$selected_source_file" | awk -F',' '{gsub(/"/, "", $1); gsub(/"/, "", $2); printf "%-15s %s\n", $1, $2}' | fzf --ansi --preview-window=hidden:wrap
+}
+
+# Main function
+main() {
+    local selection=$(display_sources_for_selection | fzf --ansi --preview-window=hidden:wrap)
+    local selected_file=$(echo "$selection" | awk '{print $NF}')
+
+    if [ -n "$selected_file" ]; then
+        load_and_present_data "$selected_file"
+    fi
+}
+
+# Execute main if script is not being sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
