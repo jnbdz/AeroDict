@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Define the base URL without the letter
+base_url="https://www.noaa.gov/jetstream/appendix/weather-acronyms"
+
+# Output file
+outputFile="config/noaa.csv"
+
+# Note: Removed the line that writes "Acronym,Meaning" as header
+
+# Iterate through all letters of the alphabet
+for letter in {a..z}; do
+    echo "Processing letter: $letter"
+    
+    # Handle special cases for "f" and "g"
+    if [ "$letter" == "f" ]; then
+        url="https://www.noaa.gov/jetstream/weather-acronyms-f"
+    elif [ "$letter" == "g" ]; then
+        url="https://www.noaa.gov/jetstream/appendix/weather-acronyms/weather-acronyms-gs"
+    else
+        # Construct the URL for other letters
+        url="${base_url}-${letter}"
+    fi
+    
+    # Fetch and process the webpage content with custom headers
+    content=$(wget --header="Accept-Encoding: gzip, deflate, br" \
+            --header="Accept-Language: en-US,en;q=0.5" \
+            --header="DNT: 1" \
+            --header="Connection: keep-alive" \
+            --header="Upgrade-Insecure-Requests: 1" \
+            --header="Sec-Fetch-Dest: document" \
+            --header="Sec-Fetch-Mode: navigate" \
+            --header="Sec-Fetch-Site: none" \
+            --header="Sec-Fetch-User: ?1" \
+            --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
+            --header="User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0" \
+            -O - "$url" | gunzip -c)
+    
+    # Extract the acronyms and descriptions
+    echo "$content" | pup 'main#main table tbody tr json{}' | \
+    jq -r '.[] | [.children[0].text, .children[1].text] | @csv' | \
+    perl -MHTML::Entities -lpe 'decode_entities($_); s/<[^>]+>//g' >> "$outputFile"
+done
+
+echo "Data extraction complete."

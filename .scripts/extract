@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# Define the output directory for CSV files
+outputDir="config"
+
+# Read URLs and corresponding filenames from config.csv
+while IFS=, read -r title filename locale url; do
+    # Remove quotes from variables
+    filename=$(echo "$filename" | tr -d '"')
+    url=$(echo "$url" | tr -d '"')
+
+    # Define outputFile path based on the filename
+    outputFile="${outputDir}/${filename}.csv"
+
+    echo "Processing: $title ($url)"
+
+    # Fetch the webpage content using wget with custom headers
+    content=$(wget --header="Accept-Encoding: gzip, deflate, br" \
+         --header="Accept-Language: en-US,en;q=0.5" \
+         --header="DNT: 1" \
+         --header="Connection: keep-alive" \
+         --header="Upgrade-Insecure-Requests: 1" \
+         --header="Sec-Fetch-Dest: document" \
+         --header="Sec-Fetch-Mode: navigate" \
+         --header="Sec-Fetch-Site: none" \
+         --header="Sec-Fetch-User: ?1" \
+         --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
+         --header="User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0" \
+         -O - "$url" | gunzip -c)
+
+    # Process the content based on specific site structure
+    # This needs to be customized for each site's HTML structure
+    # Example for FAA - Acronyms and Abbreviations
+    if [[ "$filename" == "faa_acronyms_and_abbreviations" ]]; then
+        echo "$content" | pup 'main#main article section div.card div.card-block dl json{}' | \
+        jq -r '.[] | .children | .[] | select(.tag == "dt" or .tag == "dd") | 
+        (if .tag == "dt" then (if .children[0]? then .children[0].text else .text end) else .text end) |
+        gsub("&nbsp;"; " ") | gsub("<[^>]*>"; "")' | \
+        perl -MHTML::Entities -lpe 'decode_entities($_);' | \
+        paste -d, - - | \
+        awk -F',' '{print "\"" $1 "\",\"" $2 "\""}' > "$outputFile"
+    fi
+
+    # Add more conditions for other sites based on their structure
+
+    echo "Data extracted to $outputFile"
+done < <(tail -n +2 config/config.csv) # Skip the header line of config.csv if present
+
+echo "All data extraction completed."
