@@ -39,7 +39,9 @@ for letter in {a..z}; do
     # Extract the acronyms and descriptions
     echo "$content" | pup 'main#main table tbody tr json{}' | \
     jq -r '.[] | [.children[0].text, .children[1].text] | @csv' | \
-    perl -MHTML::Entities -lpe 'decode_entities($_); s/<[^>]+>//g' >> "$outputFile"
+    sed 's/&#34;/""/g; s/&quot;/""/g' | \
+    perl -MHTML::Entities -lpe 'decode_entities($_); s/<[^>]+>//g' | \
+    sed '/^,$/d' >> "$outputFile"
 done
 
 echo "Data extraction complete."
